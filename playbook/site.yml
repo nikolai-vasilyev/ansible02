@@ -36,14 +36,14 @@
       notify: Start clickhouse service
     - name: Flush handlers
       ansible.builtin.meta: flush_handlers
-    - name: Wait service
-      service:
-        name: clickhouse-server 
+    - name: Wait Service
+      ansible.builtin.service:
+        name: clickhouse-server
         state: started
-      register: ExpectedService
-      until: ExpectedService.status.ActiveState == "active"
+      register: expected_service
+      until: expected_service.status.ActiveState == "active"
       retries: 10
-      delay: 2
+      delay: 3
     - name: Create database
       ansible.builtin.command: "clickhouse-client -q 'create database logs;'"
       register: create_db
@@ -69,7 +69,7 @@
           become: true
           ansible.builtin.apt:
             deb: vector_{{ vector_version }}_amd64.deb
-          notify: Start vector service
+          notify: Start Vector service
         - name: Copy config
           become: true
           ansible.builtin.template:
