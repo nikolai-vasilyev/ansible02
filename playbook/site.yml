@@ -12,22 +12,27 @@
       block:
         - name: Get clickhouse distrib
           ansible.builtin.get_url:
-            url: "https://packages.clickhouse.com/rpm/stable/{{ item }}-{{ clickhouse_version }}.noarch.rpm"
-            dest: "./{{ item }}-{{ clickhouse_version }}.rpm"
+            url: "{{ repo_click }}/clickhouse-client/clickhouse-client_{{ clickhouse_version }}_{{ ansible_architecture }}.deb"
+            dest: "./clickhouse-client_{{ clickhouse_version }}.deb"
             mode: "0755"
-          with_items: "{{ clickhouse_packages }}"
+          # with_items: "{{ clickhouse_packages }}"
       rescue:
         - name: Get clickhouse distrib
           ansible.builtin.get_url:
-            url: "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-{{ clickhouse_version }}.x86_64.rpm"
-            dest: "./clickhouse-common-static-{{ clickhouse_version }}.rpm"
+            url: "{{ repo_click }}/clickhouse-common-static/clickhouse-common-static_{{ clickhouse_version }}_{{ ansible_architecture }}.deb"
+            dest: "./clickhouse-common-static_{{ clickhouse_version }}.deb"
+            mode: "0755"
+        - name: Get clickhouse distrib
+          ansible.builtin.get_url:
+            url: "{{ repo_click }}/clickhouse-server/cclickhouse-server_{{ clickhouse_version }}_{{ ansible_architecture }}.deb"
+            dest: "./clickhouse-server_{{ clickhouse_version }}.deb"
             mode: "0755"
     - name: Install clickhouse packages
       ansible.builtin.dnf:
         name:
-          - clickhouse-common-static-{{ clickhouse_version }}.rpm
-          - clickhouse-client-{{ clickhouse_version }}.rpm
-          - clickhouse-server-{{ clickhouse_version }}.rpm
+          - clickhouse-common-static_{{ clickhouse_version }}.deb
+          - clickhouse-client_{{ clickhouse_version }}.deb
+          - clickhouse-server_{{ clickhouse_version }}.deb
         state: present
       become: true
       notify: Start clickhouse service
@@ -51,8 +56,8 @@
       block:
         - name: Get Vector distrib
           ansible.builtin.get_url:
-            url: "https://packages.timber.io/vector/{{ vector_release }}/vector-{{ vector_version }}.{{ ansible_architecture }}.rpm"
-            dest: "./vector-{{ vector_version }}.{{ ansible_architecture }}.rpm"
+            url: "https://packages.timber.io/vector/{{ vector_release }}/vector_{{ vector_version }}_{{ ansible_architecture }}.deb"
+            dest: "./vector_{{ vector_version }}_{{ ansible_architecture }}.deb"
             mode: "0755"
         - name: Install Vector packages
           become: true
