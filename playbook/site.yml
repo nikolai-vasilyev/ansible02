@@ -8,36 +8,42 @@
         name: clickhouse-server
         state: restarted
   tasks:
-    - name: Configure and Install Clickhouse
+    - name: Download Clickhouse
       block:
         - name: Get clickhouse distrib
           ansible.builtin.get_url:
-            url: "{{ repo_click }}/clickhouse-client/clickhouse-client_{{ clickhouse_version }}_{{ ansible_architecture }}.deb"
-            dest: "./clickhouse-client_{{ clickhouse_version }}.deb"
-            mode: "0755"
-          # with_items: "{{ clickhouse_packages }}"
-      rescue:
-        - name: Get clickhouse distrib
-          ansible.builtin.get_url:
-            url: "{{ repo_click }}/clickhouse-common-static/clickhouse-common-static_{{ clickhouse_version }}_{{ ansible_architecture }}.deb"
-            dest: "./clickhouse-common-static_{{ clickhouse_version }}.deb"
+            url: "{{ repo_click }}/clickhouse-client/clickhouse-client_{{ clickhouse_version }}_amd64.deb"
+            dest: "./clickhouse-client_{{ clickhouse_version }}_amd64.deb"
             mode: "0755"
         - name: Get clickhouse distrib
           ansible.builtin.get_url:
-            url: "{{ repo_click }}/clickhouse-server/cclickhouse-server_{{ clickhouse_version }}_{{ ansible_architecture }}.deb"
-            dest: "./clickhouse-server_{{ clickhouse_version }}.deb"
+            url: "{{ repo_click }}/clickhouse-common-static/clickhouse-common-static_{{ clickhouse_version }}_amd64.deb"
+            dest: "./clickhouse-common-static_{{ clickhouse_version }}_amd64.deb"
+            mode: "0755"
+        - name: Get clickhouse distrib
+          ansible.builtin.get_url:
+            url: "{{ repo_click }}/clickhouse-server/clickhouse-server_{{ clickhouse_version }}_amd64.deb"
+            dest: "./clickhouse-server_{{ clickhouse_version }}_amd64.deb"
             mode: "0755"
     - name: Install clickhouse packages
-      ansible.builtin.dnf:
-        name:
-          - clickhouse-common-static_{{ clickhouse_version }}.deb
-          - clickhouse-client_{{ clickhouse_version }}.deb
-          - clickhouse-server_{{ clickhouse_version }}.deb
-        state: present
+      ansible.builtin.apt:
+        deb: "{{ item }}"
+      with_items:
+        - clickhouse-common-static_{{ clickhouse_version }}_amd64.deb
+        - clickhouse-client_{{ clickhouse_version }}_amd64.deb
+        - clickhouse-server_{{ clickhouse_version }}_amd64.deb
       become: true
       notify: Start clickhouse service
     - name: Flush handlers
       ansible.builtin.meta: flush_handlers
+    - name: Wait service
+      service:
+        name: clickhouse-server 
+        state: started
+      register: ExpectedService
+      until: ExpectedService.status.ActiveState == "active"
+      retries: 10
+      delay: 2
     - name: Create database
       ansible.builtin.command: "clickhouse-client -q 'create database logs;'"
       register: create_db
@@ -56,15 +62,16 @@
       block:
         - name: Get Vector distrib
           ansible.builtin.get_url:
-            url: "https://packages.timber.io/vector/{{ vector_release }}/vector_{{ vector_version }}_{{ ansible_architecture }}.deb"
-            dest: "./vector_{{ vector_version }}_{{ ansible_architecture }}.deb"
+            url: "https://packages.timber.io/vector/{{ vector_release }}/vector_{{ vector_version }}_amd64.deb"
+            dest: "./vector_{{ vector_version }}_amd64.deb"
             mode: "0755"
         - name: Install Vector packages
           become: true
-          ansible.builtin.dnf:
-            name: vector-{{ vector_version }}.{{ ansible_architecture }}.rpm
+          ansible.builtin.apt:
+            deb: vector_{{ vector_version }}_amd64.deb
           notify: Start vector service
         - name: Copy config
+          become: true
           ansible.builtin.template:
             src: "{{ vector_template }}"
             dest: "{{ vector_config_file }}"
